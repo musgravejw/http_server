@@ -17,14 +17,16 @@ User-Agent: Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)
 int main() {
 	printf("Starting server...\n\n");
 
-	RequestBuffer *request = malloc(sizeof(RequestBuffer));
-	ResponseBuffer *response = malloc(sizeof(ResponseBuffer));
+	Request *request = malloc(sizeof(Request));
+	Response *response = malloc(sizeof(Response));
 
 	new_request(request);
 	new_response(response);
 
 	while(1) {
 		parse_request(request);
+
+		return 0;
 
 		if(strcmp(request->method, "GET") == 0) {
 			// do stuff with request
@@ -45,10 +47,8 @@ int main() {
 			printf("\nrequest: %s\n\n", request->method);
 			// printf("\nresponse: %s\n\n". response->buffer);
 		} else {
-			free(request->method);
-			free(request);
-			// free(response->buffer);
-			free(response);
+			free_request(request);
+			free_response(response);
 		}
 	}
 
