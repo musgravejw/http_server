@@ -1,4 +1,5 @@
 #include <string.h>
+#include <stdlib.h>
 
 const int LINE_SIZE = 60;
 
@@ -15,6 +16,7 @@ typedef struct {
 
 
 typedef struct {
+	char *protocol;
 	char *status;
 	char *date;
 	char *server;
@@ -46,19 +48,8 @@ void new_request(Request *request) {
 }
 
 
-void print_request(Request *request) {
-	printf("\n\n%s", request->method);
-	printf(" %s", request->document);
-	printf(" %s", request->protocol);
-	printf("\nHost: %s", request->host);
-	printf("\nAccept: %s", request->accept);
-	printf("\nAccept-Language: %s", request->language);
-	printf("\nAccept-Encoding: %s", request->encoding);
-	printf("\nUser-Agent: %s", request->user_agent);
-}
-
-
 void new_response(Response *response) {
+	response->protocol = malloc(sizeof(LINE_SIZE));
 	response->status = malloc(sizeof(LINE_SIZE));
 	response->date = malloc(sizeof(LINE_SIZE));
 	response->server = malloc(sizeof(LINE_SIZE));
@@ -75,6 +66,31 @@ void new_response(Response *response) {
 void new_token(Token *token) {
 	token->token_class = malloc(sizeof(LINE_SIZE));
 	token->lexeme = malloc(sizeof(LINE_SIZE));
+}
+
+
+void print_request(Request *request) {
+	printf("\n\n%s", request->method);
+	printf(" %s", request->document);
+	printf(" %s", request->protocol);
+	printf("\nHost: %s", request->host);
+	printf("\nAccept: %s", request->accept);
+	printf("\nAccept-Language: %s", request->language);
+	printf("\nAccept-Encoding: %s", request->encoding);
+	printf("\nUser-Agent: %s", request->user_agent);
+	printf("\n");
+}
+
+
+void print_response(Response *response) {
+	printf("\n\n%s %s", response->protocol, response->status);
+	printf("\nLast-Modified: %s", response->last_modified);
+	printf("\nETag: \"%s\"", response->etag);
+	printf("\nAccept-Ranges: %s", response->accept_ranges);
+	printf("\nContent-Length: %s", response->content_length);
+	printf("\nConnection: %s", response->connection);
+	printf("\nContent-Type: %s", response->content_type);
+	printf("\n%s", response->body);
 }
 
 
@@ -100,6 +116,7 @@ Token* next_token() {
 	}
 }
 
+
 // GET /docs/index.html HTTP/1.1
 void parse_request(Request *request) {
 	request->method = (next_token())->lexeme;
@@ -122,36 +139,62 @@ void parse_request(Request *request) {
 	(next_token())->lexeme;
 	request->encoding = (next_token())->lexeme;
 
-	print_request(request);
+	// user agent
+	(next_token())->lexeme;
+	request->user_agent = (next_token())->lexeme;
 
-	// n = getline(&(request->host), &len, stdin);
-	// request->host[n - 1] = 0;
-
-	// n = getline(&(request->accept), &len, stdin);
-	// request->accept[n - 1] = 0;
-
-	// n = getline(&(request->language), &len, stdin);
-	// request->language[n - 1] = 0;
-
-	// n = getline(&(request->encoding), &len, stdin);
-	// request->encoding[n - 1] = 0;
-
-	// n = getline(&(request->user_agent), &len, stdin);
-	// request->user_agent[n - 1] = 0;
+	// blank line
+	(next_token())->lexeme;
+	(next_token())->lexeme;
 }
 
 
-void build_response(Response *response) {
-	response->status = "HTTP/1.1 200 OK";
+void build_response_body(Request *request, 
+						 Response *response) {
+	FILE *fp;
+	char *filename = malloc(sizeof(LINE_SIZE));
+	char c;
+	int i = 0;
+	int j = 0;
+
+	filename[i++] = '.';
+	filename[i++] = '/';
+	filename[i++] = 'w';
+	filename[i++] = 'w';
+	filename[i++] = 'w';
+	filename[i++] = '/';
+
+	while (request->document[j] != '\0')
+		filename[i++] = request->document[j++];
+
+	i = 0;
+	fp = fopen(filename, "r");
+
+	while (c != EOF) {
+		c = fgetc(fp);
+		response->body[i++] = c;
+	}
+
+	fclose(fp);
+	response->body[i] = '\0';
+}
+
+
+void build_response(Request *request,
+				    Response *response) {
+	// placeholder header values
+	response->protocol = "HTTP/1.1";
+	response->status = "200 OK";
 	response->date = "Date: Sun, 18 Oct 2009 08:56:53 GMT";
 	response->server = "Server: Apache/2.2.14 (Win32)";
-	response->last_modified = "Last-Modified: Sat, 20 Nov 2019 07:16:26 GMT";
-	response->etag = "ETag: \"10000000565a5-2c-3e94b66c2e680\"";
-	response->accept_ranges = "Accept-Ranges: bytes";
-	response->content_length = "Content-Length: 44";
-	response->connection = "Connection: close";
-	response->content_type = "Content-Type: text/html";
-	response->body = "<html><body><h1>It works!</h1></body></html>";
+	response->last_modified = "Sat, 20 Nov 2019 07:16:26 GMT";
+	response->etag = "10000000565a5-2c-3e94b66c2e680";
+	response->accept_ranges = "bytes";
+	response->content_length = "44";
+	response->connection = "close";
+	response->content_type = "text/html";
+
+	build_response_body(request, response);
 }
 
 
