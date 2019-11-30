@@ -152,7 +152,7 @@ void parse_request(Request *request) {
 void build_response_body(Request *request, 
 						 Response *response) {
 	FILE *fp;
-	char *filename = malloc(sizeof(LINE_SIZE));
+	char *filename = malloc(sizeof(LINE_SIZE)); // Memory Leak
 	char c;
 	int i = 0;
 	int j = 0;
