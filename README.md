@@ -3,6 +3,8 @@ still wip
 
 ## GET
 
+Request
+
 ```
 GET index.html HTTP/1.1
 Host: www.nowhere123.com
@@ -11,6 +13,8 @@ Accept-Language: en-us
 Accept-Encoding: gzip, deflate
 User-Agent: Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)
 ```
+
+Response
 
 ```
 HTTP/1.1 200 OK
