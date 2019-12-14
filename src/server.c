@@ -29,18 +29,43 @@
  */
 
 #include <stdio.h>
+
+#include <arpa/inet.h>
+#include <netdb.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
+#include <unistd.h>
+
 #include "parser.c"
 
 int main() {
 	printf("Starting server...\n\n");
 
-	Request *request = malloc(sizeof(Request));
-	Response *response = malloc(sizeof(Response));
+	struct sockaddr_in server_address;
+	struct protoent *protocol = getprotobyname("tcp");
+	int sock = socket(AF_INET, SOCK_STREAM, protocol->p_proto);
 
-	new_request(request);
-	new_response(response);
+	if (protocol == -1 || sock == -1) return -1;
+
+	if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(enable)) < 0) return -1;
+
+	server_address.sin_family = AF_INET;
+	server_address.sin_addr.s_addr = htonl(INADDR_ANY);
+	server_address.sin_port = htons(80);
+
+	if (bind(sock, (struct sockaddr*) &server_address, sizeof(server_address)) == -1) return -1;
+
+	if (listen(sock, 5) == -1) return -1;
+
+	printf("Listening on 127.0.0.1:80 ...\n\n");
 
 	while(1) {
+		Request *request = malloc(sizeof(Request));
+		Response *response = malloc(sizeof(Response));
+
+		new_request(request);
+		new_response(response);
+
 		parse_request(request);
 
 		if(strcmp(request->method, "GET") == 0) {

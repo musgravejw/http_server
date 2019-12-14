@@ -1,5 +1,5 @@
 # HTTP Server
-still wip
+Opens a TCP connection on 127.0.0.1:80.
 
 ## GET
 
