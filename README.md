@@ -1,9 +1,11 @@
 # HTTP Server
 Opens a TCP connection on 127.0.0.1:80.
 
+Serves files in the `www` directory.
+
 ## GET
 
-Request
+## Request
 
 ```
 GET index.html HTTP/1.1
@@ -14,7 +16,7 @@ Accept-Encoding: gzip, deflate
 User-Agent: Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)
 ```
 
-Response
+## Response
 
 ```
 HTTP/1.1 200 OK
@@ -26,3 +28,8 @@ Connection: close
 Content-Type: text/html
 <html><body><h1>It works!</h1></body></html>
 ```
+
+## License 
+
+  * This project is licensed under a BSD 3-Clause License
+  
