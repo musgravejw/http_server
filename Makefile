@@ -1,2 +1,6 @@
 target:
-	@gcc src/server.c -o dist/server 
+	@mkdir -p dist
+	@gcc src/server.c -w -o dist/server 
+
+clean:
+	@rm -rf dist
