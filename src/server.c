@@ -39,54 +39,75 @@
 #include "parser.c"
 
 int main() {
-	printf("Starting server...\n\n");
-
 	struct sockaddr_in server_address;
-	struct protoent *protocol = getprotobyname("tcp");
-	int sock = socket(AF_INET, SOCK_STREAM, protocol->p_proto);
+	struct sockaddr_in client_address;
+	struct protoent *protocol;
+	socklen_t client_socklen;
+	int server_socket;
+	int client_socket;
 	int enable = 1;
+	ssize_t bytes_read;
+	char *buffer[255];
 
-	if (protocol == -1 || sock == -1) return -1;
+	printf("\nStarting server...\n");
 
-	if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(enable)) < 0) return -1;
+	// open socket on host
+	protocol = getprotobyname("tcp");
+	server_socket = socket(AF_INET, SOCK_STREAM, protocol->p_proto);
+
+	if (protocol == -1 || server_socket == -1) return -1;
+	if (setsockopt(server_socket, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(enable)) < 0) return -1;
 
 	server_address.sin_family = AF_INET;
 	server_address.sin_addr.s_addr = htonl(INADDR_ANY);
 	server_address.sin_port = htons(80);
 
-	if (bind(sock, (struct sockaddr*) &server_address, sizeof(server_address)) == -1) return -1;
-
-	if (listen(sock, 5) == -1) return -1;
+	if (bind(server_socket, (struct sockaddr*) &server_address, sizeof(server_address)) == -1) return -1;
+	if (listen(server_socket, 5) == -1) return -1;
 
 	printf("Listening on port 80...\n\n");
 
+	// listen on port 80
 	while(1) {
 		Request *request = malloc(sizeof(Request));
 		Response *response = malloc(sizeof(Response));
 
 		new_request(request);
 		new_response(response);
+		client_socklen = sizeof(client_address);
+		client_socket = accept(server_socket, (struct sockaddr*) &client_address, &client_socklen);
 
-		parse_request(request);
+		// read into buffer
+		while ((bytes_read = read(client_socket, buffer, 255)) > 0) {
+			printf("received:\n");
+			write(STDOUT_FILENO, buffer, bytes_read);
 
-		if(strcmp(request->method, "GET") == 0) {
-			// return response
-			build_response(request, response);
-			print_response(response);
+			for (int i = 0; i < bytes_read - 1; i++)
+				buffer[i]++;
 
-		} else if(strcmp(request->method, "HEAD") == 0
-			|| strcmp(request->method, "POST") == 0
-			|| strcmp(request->method, "PUT") == 0
-			|| strcmp(request->method, "DELETE") == 0
-			|| strcmp(request->method, "TRACE") == 0
-			|| strcmp(request->method, "OPTIONS") == 0
-			|| strcmp(request->method, "PATCH") == 0) {
-			
-			printf("\nrequest: %s\n\n", request->method);
-		} else {
-			free_request(request);
-			free_response(response);
+			write(client_socket, buffer, bytes_read);
+			parse_request(request);
+
+			if(strcmp(request->method, "GET") == 0) {
+				// return response
+				build_response(request, response);
+				print_response(response);
+				break;
+			} else if(strcmp(request->method, "HEAD") == 0
+					|| strcmp(request->method, "POST") == 0
+					|| strcmp(request->method, "PUT") == 0
+					|| strcmp(request->method, "DELETE") == 0
+					|| strcmp(request->method, "TRACE") == 0
+					|| strcmp(request->method, "OPTIONS") == 0
+					|| strcmp(request->method, "PATCH") == 0) {
+				printf("\nrequest: %s\n\n", request->method);
+			} else {
+				free_request(request);
+				free_response(response);
+			}
 		}
+
+		close(client_socket);
 	}
 
 	return -1;
