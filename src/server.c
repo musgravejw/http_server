@@ -47,9 +47,9 @@ int main() {
 	int client_socket;
 	int enable = 1;
 	ssize_t bytes_read;
-	char *buffer[255];
+	char *buffer;
 
-	printf("\nStarting server...\n");
+	printf("\nStarting server...");
 
 	// open socket on host
 	protocol = getprotobyname("tcp");
@@ -65,7 +65,9 @@ int main() {
 	if (bind(server_socket, (struct sockaddr*) &server_address, sizeof(server_address)) == -1) return -1;
 	if (listen(server_socket, 5) == -1) return -1;
 
-	printf("Listening on port 80...\n\n");
+	printf("\nListening on port 80...\n");
+
+	buffer = malloc(1028);
 
 	// listen on port 80
 	while(1) {
@@ -78,21 +80,20 @@ int main() {
 		client_socket = accept(server_socket, (struct sockaddr*) &client_address, &client_socklen);
 
 		// read into buffer
-		while ((bytes_read = read(client_socket, buffer, 255)) > 0) {
-			printf("received:\n");
-			write(STDOUT_FILENO, buffer, bytes_read);
+		while(read(client_socket, buffer, 1028) > 0) {
+			printf("\nReceived:\n%s\n", buffer);
 
-			for (int i = 0; i < bytes_read - 1; i++)
-				buffer[i]++;
+			parse_request(request, buffer);
+			// log_request(request);
 
-			write(client_socket, buffer, bytes_read);
-			parse_request(request);
-
-			if(strcmp(request->method, "GET") == 0) {
-				// return response
+			if (strcmp(request->method, "GET") == 0) {
 				build_response(request, response);
-				print_response(response);
-				break;
+
+				char *res = response_to_string(response);
+				printf("\nSending: %s\n", res);
+
+				// return response
+				write(client_socket, res, sizeof(res));
 			} else if(strcmp(request->method, "HEAD") == 0
 					|| strcmp(request->method, "POST") == 0
 					|| strcmp(request->method, "PUT") == 0
@@ -102,8 +103,8 @@ int main() {
 					|| strcmp(request->method, "PATCH") == 0) {
 				printf("\nrequest: %s\n\n", request->method);
 			} else {
-				free_request(request);
-				free_response(response);
+				// free_request(request);
+				// free_response(response);
 			}
 		}
 

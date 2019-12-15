@@ -89,7 +89,7 @@ void new_response(Response *response) {
 	response->content_length = malloc(sizeof(LINE_SIZE));
 	response->connection = malloc(sizeof(LINE_SIZE));
 	response->content_type = malloc(sizeof(LINE_SIZE));
-	response->body = malloc(sizeof(LINE_SIZE));
+	response->body = malloc(512);
 }
 
 
@@ -99,8 +99,8 @@ void new_token(Token *token) {
 }
 
 
-void print_request(Request *request) {
-	printf("\n\n%s", request->method);
+void log_request(Request *request) {
+	printf("\nRequest:\n%s", request->method);
 	printf(" %s", request->document);
 	printf(" %s", request->protocol);
 	printf("\nHost: %s", request->host);
@@ -108,12 +108,12 @@ void print_request(Request *request) {
 	printf("\nAccept-Language: %s", request->language);
 	printf("\nAccept-Encoding: %s", request->encoding);
 	printf("\nUser-Agent: %s", request->user_agent);
-	printf("\n");
+	printf("\n\n");
 }
 
 
-void print_response(Response *response) {
-	printf("\n\n%s %s", response->protocol, response->status);
+void log_response(Response *response) {
+	printf("\nResponse:\n%s %s", response->protocol, response->status);
 	printf("\nLast-Modified: %s", response->last_modified);
 	printf("\nETag: \"%s\"", response->etag);
 	printf("\nAccept-Ranges: %s", response->accept_ranges);
@@ -124,58 +124,62 @@ void print_response(Response *response) {
 }
 
 
-Token* next_token() {
+Token* next_token(char *buffer) {
 	Token *token = malloc(sizeof(Token));
 	char *str = malloc(sizeof(LINE_SIZE));
-	char c;
 	int i = 0;
 
 	new_token(token);
 
 	while(1) {
-		c = getchar();
-		
-		if (c == ' ' || c == '\n') {
+		if (buffer[i] == '\0') return token;
+
+		if (buffer[i] == ' ' || buffer[i] == '\n') {
 			str[i] = '\0';
 			token->lexeme = str;
 
 			return token;
 		}
 
-		str[i++] = c;
+		str[i++] = buffer[i];
 	}
 }
 
 
-// GET /docs/index.html HTTP/1.1
-void parse_request(Request *request) {
-	request->method = (next_token())->lexeme;
-	request->document = (next_token())->lexeme;
-	request->protocol = (next_token())->lexeme;
+void parse_request(Request *request, 
+				   char *buffer) {
+	request->method = (next_token(buffer))->lexeme;
+	buffer += strlen(request->method) + 1;
+
+	request->document = (next_token(buffer))->lexeme;
+	buffer += strlen(request->document) + 1;
+	request->protocol = (next_token(buffer))->lexeme;
+	buffer += strlen("HTTP/1.1 ") + 1;
 
 	// host
-	(next_token())->lexeme;
-	request->host = (next_token())->lexeme;
+	buffer += strlen("Host: ");
+	request->host = (next_token(buffer))->lexeme;
+	// buffer += strlen(request->host) + 1;
 
 	// accept
-	(next_token())->lexeme;
-	request->accept = (next_token())->lexeme;
+	// next_token(buffer)
+	// request->accept = (next_token(buffer))->lexeme;
 
-	// language
-	(next_token())->lexeme;
-	request->language = (next_token())->lexeme;
+	// // language
+	// next_token(buffer)
+	// request->language = (next_token(buffer))->lexeme;
 
-	// encoding
-	(next_token())->lexeme;
-	request->encoding = (next_token())->lexeme;
+	// // encoding
+	// next_token(buffer)
+	// request->encoding = (next_token(buffer))->lexeme;
 
-	// user agent
-	(next_token())->lexeme;
-	request->user_agent = (next_token())->lexeme;
+	// // user agent
+	// next_token(buffer)
+	// request->user_agent = (next_token(buffer))->lexeme;
 
-	// blank line
-	(next_token())->lexeme;
-	(next_token())->lexeme;
+	// // blank line
+	// next_token(buffer)
+	// next_token(buffer)
 }
 
 
@@ -215,16 +219,35 @@ void build_response(Request *request,
 	// placeholder header values
 	response->protocol = "HTTP/1.1";
 	response->status = "200 OK";
-	response->date = "Date: Sun, 18 Oct 2009 08:56:53 GMT";
+	response->date = "Date: Sat, 14 Dec 2019 10:56:53 EST";
 	response->server = "Server: Apache/2.2.14 (Win32)";
 	response->last_modified = "Sat, 20 Nov 2019 07:16:26 GMT";
 	response->etag = "10000000565a5-2c-3e94b66c2e680";
 	response->accept_ranges = "bytes";
-	response->content_length = "44";
 	response->connection = "close";
 	response->content_type = "text/html";
 
 	build_response_body(request, response);
+
+	sprintf(response->content_length, "%d", sizeof(response->body) * 8);
+}
+
+
+char *response_to_string(Response *response) {
+	char *res = malloc(1028);
+
+	sprintf(res, "\n\n%s %s\nLast-Modified: %s\nETag: \"%s\"\nAccept-Ranges: %s\nContent-Length: %s\nConnection: %s\nContent-Type: %s\n%s", 
+		response->protocol, 
+		response->status, 
+		response->last_modified, 
+		response->etag, 
+		response->accept_ranges, 
+		response->content_length, 
+		response->connection, 
+		response->content_type, 
+		response->body);
+
+	return res;
 }
 
 
@@ -239,6 +262,7 @@ void free_request(Request *request) {
 
 
 void free_response(Response *response) {
+	free(response->protocol);
 	free(response->status);
 	free(response->date);
 	free(response->server);
