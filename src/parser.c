@@ -274,4 +274,3 @@ void free_response(Response *response) {
 	free(response->content_type);
 	free(response->body);
 }
-
