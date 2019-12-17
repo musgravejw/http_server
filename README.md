@@ -1,4 +1,6 @@
 # HTTP Server
+![GitHub tag (latest SemVer)](https://img.shields.io/github/v/tag/musgravejw/http_server)
+
 Opens a TCP connection on `127.0.0.1:80`.
 
 Serves files in the `www` directory.
@@ -65,3 +67,7 @@ Content-Type: text/html
 
 Copyright (c) 2019, John Musgrave All rights reserved.
  
+## Author
+
+Written by John Musgrave.
+
