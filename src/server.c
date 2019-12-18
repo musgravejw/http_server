@@ -40,11 +40,8 @@
 
 int main() {
 	struct sockaddr_in server_address;
-	struct sockaddr_in client_address;
 	struct protoent *protocol;
-	socklen_t client_socklen;
 	int server_socket;
-	int client_socket;
 	int enable = 1;
 	ssize_t bytes_read;
 	char *buffer;
@@ -76,8 +73,10 @@ int main() {
 
 		new_request(request);
 		new_response(response);
-		client_socklen = sizeof(client_address);
-		client_socket = accept(server_socket, (struct sockaddr*) &client_address, &client_socklen);
+
+		struct sockaddr_in client_address;
+		socklen_t client_socklen = sizeof(client_address);
+		int client_socket = accept(server_socket, (struct sockaddr*) &client_address, &client_socklen);
 
 		// read into buffer
 		while(read(client_socket, buffer, 1028) > 0) {
