@@ -5,7 +5,7 @@ Opens a TCP connection on `127.0.0.1:80`.
 
 Serves files in the `www` directory.
 
-```
+```shell
 .
 ├── LICENSE
 ├── Makefile
@@ -22,12 +22,12 @@ Serves files in the `www` directory.
 ```
 
 ## Install
-```
+```shell
 $ make
 ```
 
 ## Usage
-```
+```shell
 $ ./dist/server
 
 Starting server...
