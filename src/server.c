@@ -39,76 +39,81 @@
 #include "parser.c"
 
 int main() {
-	struct sockaddr_in server_address;
-	struct protoent *protocol;
-	int server_socket;
-	int enable = 1;
-	ssize_t bytes_read;
-	char *buffer;
+  struct sockaddr_in server_address;
+  struct protoent *protocol;
+  int server_socket;
+  int enable = 1;
+  ssize_t bytes_read;
+  char *buffer;
 
-	printf("\nStarting server...");
+  printf("\nStarting server...");
 
-	// open socket on host
-	protocol = getprotobyname("tcp");
-	server_socket = socket(AF_INET, SOCK_STREAM, protocol->p_proto);
+  // open socket on host
+  protocol = getprotobyname("tcp");
+  server_socket = socket(AF_INET, SOCK_STREAM, protocol->p_proto);
 
-	if (protocol == -1 || server_socket == -1) return -1;
-	if (setsockopt(server_socket, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(enable)) < 0) return -1;
+  if (protocol == -1 || server_socket == -1) return -1;
+  if (setsockopt(server_socket, SOL_SOCKET, SO_REUSEADDR, 
+  	             &enable, sizeof(enable)) < 0) return -1;
 
-	server_address.sin_family = AF_INET;
-	server_address.sin_addr.s_addr = htonl(INADDR_ANY);
-	server_address.sin_port = htons(80);
+  server_address.sin_family = AF_INET;
+  server_address.sin_addr.s_addr = htonl(INADDR_ANY);
+  server_address.sin_port = htons(80);
 
-	if (bind(server_socket, (struct sockaddr*) &server_address, sizeof(server_address)) == -1) return -1;
-	if (listen(server_socket, 5) == -1) return -1;
+  if (bind(server_socket, (struct sockaddr*) &server_address, 
+  	       sizeof(server_address)) == -1) return -1;
+  if (listen(server_socket, 5) == -1) return -1;
 
-	printf("\nListening on port 80...\n");
+  printf("\nListening on port 80...\n");
 
-	buffer = malloc(1028);
+  buffer = malloc(1028);
 
-	// listen on port 80
-	while(1) {
-		Request *request = malloc(sizeof(Request));
-		Response *response = malloc(sizeof(Response));
+  // listen on port 80
+  while(1) {
+    Request *request = malloc(sizeof(Request));
+    Response *response = malloc(sizeof(Response));
 
-		new_request(request);
-		new_response(response);
+    new_request(request);
+    new_response(response);
 
-		struct sockaddr_in client_address;
-		socklen_t client_socklen = sizeof(client_address);
-		int client_socket = accept(server_socket, (struct sockaddr*) &client_address, &client_socklen);
+    struct sockaddr_in client_address;
+    socklen_t client_socklen = sizeof(client_address);
+    int client_socket = accept(server_socket, (struct sockaddr*) 
+    	                       &client_address, &client_socklen);
 
-		// read into buffer
-		while(read(client_socket, buffer, 1028) > 0) {
-			printf("\nReceived:\n%s\n", buffer);
+    // read into buffer
+    while(read(client_socket, buffer, 1028) > 0) {
+      // printf("\nReceived:\n%s\n", buffer);
 
-			parse_request(request, buffer);
-			// log_request(request);
+      parse_request(request, buffer);
+      log_request(request);
 
-			if (strcmp(request->method, "GET") == 0) {
-				build_response(request, response);
+      if (strcmp(request->method, "GET") == 0) {
+        build_response(request, response);
+        log_response(response);
 
-				char *res = response_to_string(response);
-				printf("\nSending: %s\n", res);
+        char *res = response_to_string(response);
+        printf("\nSending: %s\n", res);
 
-				// return response
-				write(client_socket, res, sizeof(res));
-			} else if(strcmp(request->method, "HEAD") == 0
-					|| strcmp(request->method, "POST") == 0
-					|| strcmp(request->method, "PUT") == 0
-					|| strcmp(request->method, "DELETE") == 0
-					|| strcmp(request->method, "TRACE") == 0
-					|| strcmp(request->method, "OPTIONS") == 0
-					|| strcmp(request->method, "PATCH") == 0) {
-				printf("\nrequest: %s\n\n", request->method);
-			} else {
-				// free_request(request);
-				// free_response(response);
-			}
-		}
+        // return response
+        int n = write(client_socket, res, 1028);
+        if (n < 0) printf("Error writing to socket.");
+    } else if(strcmp(request->method, "HEAD") == 0
+        || strcmp(request->method, "POST") == 0
+        || strcmp(request->method, "PUT") == 0
+        || strcmp(request->method, "DELETE") == 0
+        || strcmp(request->method, "TRACE") == 0
+        || strcmp(request->method, "OPTIONS") == 0
+        || strcmp(request->method, "PATCH") == 0) {
+      printf("\nrequest: %s\n\n", request->method);
+    } else {
+      // free_request(request);
+      // free_response(response);
+    }
+  }
 
-		close(client_socket);
-	}
+    close(client_socket);
+  }
 
-	return -1;
+  return -1;
 }
